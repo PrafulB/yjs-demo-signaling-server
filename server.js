@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { WebSocketServer } from 'ws'
+import http from 'http'
+import * as map from 'lib0/map'
 
 const wsReadyStateConnecting = 0
 const wsReadyStateOpen = 1
@@ -9,7 +11,13 @@ const wsReadyStateClosed = 3 // eslint-disable-line
 
 const pingTimeout = 30000
 
+const port = process.env.PORT || 4444
 const wss = new WebSocketServer({ noServer: true })
+
+const server = http.createServer((request, response) => {
+  response.writeHead(200, { 'Content-Type': 'text/plain' })
+  response.end('okay')
+})
 
 /**
  * Map froms topic-name to set of subscribed clients.
@@ -81,10 +89,8 @@ const onconnection = conn => {
           /** @type {Array<string>} */ (message.topics || []).forEach(topicName => {
             if (typeof topicName === 'string') {
               // add conn to topic
-              const topic = new Set()
-              topics.set(topicName, topic)
-              
-              topic.add(websocket)
+              const topic = map.setIfUndefined(topics, topicName, () => new Set())
+              topic.add(conn)
               // add topic to conn
               subscribedTopics.add(topicName)
             }
